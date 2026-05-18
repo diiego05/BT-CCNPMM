@@ -7,6 +7,9 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ForgotPassword from "@/pages/ForgotPassword";
 import Profile from "@/pages/Profile";
+import Shop from "@/pages/Shop";
+import ProductDetail from "@/pages/ProductDetail";
+import Home from "@/pages/Home";
 
 export const getRoutes = (): RouteObject[] => {
   const role = "ADMIN";
@@ -18,7 +21,15 @@ export const getRoutes = (): RouteObject[] => {
       children: [
         {
           index: true,
-          element: <div>Home</div>,
+          element: <Home />,
+        },
+        {
+          path: "shop",
+          element: <Shop />,
+        },
+        {
+          path: "product/:slug",
+          element: <ProductDetail />,
         },
         {
           path: "profile",

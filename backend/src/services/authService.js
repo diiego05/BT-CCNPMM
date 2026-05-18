@@ -1,10 +1,6 @@
 import bcrypt from "bcryptjs";
-import axios from "axios";
-import { OAuth2Client } from "google-auth-library";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 import db from "../models/index.js";
-
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const register = (data) => {
   return new Promise(async (resolve, reject) => {
@@ -115,7 +111,7 @@ const login = (data) => {
       });
 
       // Save refresh token to database
-      const expiresAt = new Date(Date.now() + 60 * 1000); // 1 minute
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); //7 days
       await db.RefreshToken.create({
         user_id: user.id,
         token: refreshToken,
@@ -193,7 +189,7 @@ const refreshToken = (token) => {
       });
 
       // Save new refresh token
-      const expiresAt = new Date(Date.now() + 60 * 1000); // 1 minute
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
       await db.RefreshToken.create({
         user_id: user.id,
         token: newRefreshToken,
@@ -215,73 +211,66 @@ const refreshToken = (token) => {
   });
 };
 
-const googleLogin = (accessTokenFromGoogle) => {
+const googleLogin = (accessToken) => {
   return new Promise(async (resolve, reject) => {
     try {
-      // Dùng accessToken truy vấn Google lấy User Info
-      const { data: payload } = await axios.get(
-        "https://www.googleapis.com/oauth2/v3/userinfo",
-        {
-          headers: { Authorization: `Bearer ${accessTokenFromGoogle}` },
-        }
-      );
+      const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      
+      if (!response.ok) {
+        return resolve({ status: 400, message: "Invalid Google token" });
+      }
 
-      const { email, sub, given_name, family_name, picture } = payload;
+      const data = await response.json();
+      const { sub: googleId, email, name, picture } = data;
 
+      if (!email) {
+        return resolve({ status: 400, message: "Could not get email from Google" });
+      }
+
+      // Check if user exists
       let user = await db.User.findOne({
         where: { email },
-        include: [
-          {
-            model: db.Role,
-            as: "role",
-          },
-        ],
+        include: [{ model: db.Role, as: "role" }],
       });
 
-      if (user) {
-        // Sync provider if user is local or doesn't have provider
-        if (!user.auth_provider || user.auth_provider === "local") {
-          await user.update({
-            auth_provider: "google",
-            auth_provider_id: sub,
-          });
-        }
-
-        // Cập nhật avatar nếu chưa có
-        const profile = await db.UserProfile.findOne({
-          where: { user_id: user.id },
-        });
-        if (profile && !profile.avatar_url) {
-          await profile.update({ avatar_url: picture });
-        }
-      } else {
+      if (!user) {
         // Create new user
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(googleId, salt);
+        
         user = await db.User.create({
           email,
           auth_provider: "google",
-          auth_provider_id: sub,
+          auth_provider_id: googleId,
+          role_id: 2, // User role
           status: "ACTIVE",
-          role_id: 2, // Default user role
+          password: hashedPassword,
         });
 
+        // Create profile
         await db.UserProfile.create({
           user_id: user.id,
-          first_name: given_name,
-          last_name: family_name,
-          avatar_url: picture,
+          first_name: name,
+          avatar_url: picture
         });
 
-        // reload user with role
-        user = await db.User.findByPk(user.id, {
-          include: [
-            {
-              model: db.Role,
-              as: "role",
-            },
-          ],
+        // Refetch to get role
+        user = await db.User.findOne({
+          where: { id: user.id },
+          include: [{ model: db.Role, as: "role" }],
         });
+      } else {
+        if (user.auth_provider !== "google" || !user.auth_provider_id) {
+          await user.update({
+            auth_provider: "google",
+            auth_provider_id: googleId,
+          });
+        }
       }
 
+      // Check user status
       if (user.status !== "ACTIVE") {
         return resolve({
           status: 403,
@@ -289,48 +278,43 @@ const googleLogin = (accessTokenFromGoogle) => {
         });
       }
 
-      // Generate tokens
-      const accessToken = generateAccessToken({
+      const newAccessToken = generateAccessToken({
         id: user.id,
         email: user.email,
         role_id: user.role_id,
       });
 
-      const refreshToken = generateRefreshToken({
-        id: user.id,
-      });
-
-      // Save refresh token to database
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      const newRefreshToken = generateRefreshToken({ id: user.id });
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       await db.RefreshToken.create({
         user_id: user.id,
-        token: refreshToken,
+        token: newRefreshToken,
         expires_at: expiresAt,
         is_revoked: false,
       });
 
       let redirectUrl = "/";
-      if (user.role_id === 1 || user.role?.role_name === "admin") {
+      if (user.role_id === 1 || user?.role?.role_name === "admin") {
         redirectUrl = "/admin";
       }
 
       resolve({
         status: 200,
-        message: "Google login success",
+        message: "Login success",
         data: {
-          accessToken,
-          refreshToken,
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
           redirectUrl,
           user: {
             id: user.id,
             email: user.email,
-            phone: user.phone || "",
-            role: user.role?.role_name,
+            phone: user.phone,
+            role: user?.role?.role_name,
+            avatar_url: picture,
           },
         },
       });
     } catch (error) {
-      console.error("Google Login Error:", error);
       reject(error);
     }
   });

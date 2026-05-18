@@ -7,6 +7,7 @@ import "dotenv/config";
 import userRouter from "./route/userRoute.js";
 import authRouter from "./route/authRoute.js";
 import forgotPasswordRoute from "./route/forgotPasswordRoute.js";
+import productRoute from "./route/productRoute.js";
 
 let app = express();
 
@@ -19,6 +20,7 @@ app.use(cookieParser());
 app.use("/user", userRouter);
 app.use("/auth", authRouter);
 app.use("/auth/forgot-password", forgotPasswordRoute);
+app.use("/products", productRoute);
 
 connectDB();
 
