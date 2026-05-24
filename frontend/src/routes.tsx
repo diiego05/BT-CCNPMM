@@ -10,6 +10,8 @@ import Profile from "@/pages/Profile";
 import Shop from "@/pages/Shop";
 import ProductDetail from "@/pages/ProductDetail";
 import Home from "@/pages/Home";
+import Cart from "@/pages/Cart";
+import Orders from "@/pages/Orders";
 
 export const getRoutes = (): RouteObject[] => {
   const role = "ADMIN";
@@ -28,6 +30,10 @@ export const getRoutes = (): RouteObject[] => {
           element: <Shop />,
         },
         {
+          path: "cart",
+          element: <Cart />,
+        },
+        {
           path: "product/:slug",
           element: <ProductDetail />,
         },
@@ -36,6 +42,14 @@ export const getRoutes = (): RouteObject[] => {
           element: (
             <AuthGuard>
               <Profile />
+            </AuthGuard>
+          ),
+        },
+        {
+          path: "orders",
+          element: (
+            <AuthGuard>
+              <Orders />
             </AuthGuard>
           ),
         },

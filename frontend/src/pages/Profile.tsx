@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { logout } from "@/stores/authSlice";
 import {
   User,
@@ -53,12 +53,12 @@ const Profile = () => {
                 >
                   <User size={18} /> Thông tin tài khoản
                 </a>
-                <a
-                  href="#"
+                <Link
+                  to="/orders"
                   className="flex items-center gap-3 px-6 py-4 hover:bg-gray-50 border-b border-black text-gray-700 font-medium transition-colors"
                 >
                   <Package size={18} /> Đơn hàng của tôi
-                </a>
+                </Link>
                 <a
                   href="#"
                   className="flex items-center gap-3 px-6 py-4 hover:bg-gray-50 border-b border-black text-gray-700 font-medium transition-colors"

@@ -28,6 +28,11 @@ const getProducts = async (query) => {
         model: db.Category,
         as: "category",
       },
+      {
+        model: db.ProductVariant,
+        as: "variants",
+        required: false,
+      },
     ];
 
     if (category_slug) {
@@ -77,6 +82,10 @@ const getProductBySlug = async (slug) => {
         {
           model: db.Category,
           as: "category",
+        },
+        {
+          model: db.ProductVariant,
+          as: "variants",
         },
       ],
     });

@@ -12,6 +12,16 @@ export interface ProductImage {
   is_primary: boolean;
 }
 
+export interface ProductVariant {
+  id: number;
+  product_id: number;
+  size?: string;
+  color?: string;
+  type?: string;
+  stock: number;
+  price?: number | string;
+}
+
 export interface Product {
   id: number;
   category_id: number;
@@ -25,6 +35,7 @@ export interface Product {
   status: string;
   images: ProductImage[];
   category: Category;
+  variants?: ProductVariant[];
 }
 
 export interface GetProductsParams {

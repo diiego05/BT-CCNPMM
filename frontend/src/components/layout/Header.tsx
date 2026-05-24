@@ -1,9 +1,12 @@
 import { Link } from "react-router-dom";
 import { ShoppingBag, ShoppingCart, LogIn } from "lucide-react";
+import { useSelector } from "react-redux";
 import useAuth from "@/hooks/useAuth";
+import type { RootState } from "@/stores/store";
 
 const Header = () => {
   const { isAuthenticated } = useAuth();
+  const { totalItems } = useSelector((state: RootState) => state.cart);
 
   return (
     <header className="w-full bg-white border-b-2 border-black sticky top-0 z-50">
@@ -43,26 +46,29 @@ const Header = () => {
         </div>
 
         <div className="flex items-center space-x-6">
-          {isAuthenticated ? (
-            <>
-              <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <ShoppingCart size={24} />
-                <span className="absolute top-0 right-0 w-4 h-4 bg-black text-white text-[10px] font-bold flex items-center justify-center rounded-full">
-                  0
-                </span>
-              </button>
+          <Link
+            to="/cart"
+            className="relative p-2 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center text-black"
+          >
+            <ShoppingCart size={24} />
+            {totalItems > 0 && (
+              <span className="absolute top-0 right-0 w-5 h-5 bg-black text-white text-[10px] font-bold flex items-center justify-center rounded-full border border-black shadow-sm">
+                {totalItems}
+              </span>
+            )}
+          </Link>
 
-              <Link
-                to="/profile"
-                className="w-10 h-10 rounded-full border-2 border-black overflow-hidden hover:shadow-brutal transition-all"
-              >
-                <img
-                  src="https://i.pravatar.cc/150?img=47"
-                  alt="User Avatar"
-                  className="w-full h-full object-cover"
-                />
-              </Link>
-            </>
+          {isAuthenticated ? (
+            <Link
+              to="/profile"
+              className="w-10 h-10 rounded-full border-2 border-black overflow-hidden hover:shadow-brutal transition-all"
+            >
+              <img
+                src="https://i.pravatar.cc/150?img=47"
+                alt="User Avatar"
+                className="w-full h-full object-cover"
+              />
+            </Link>
           ) : (
             <Link
               to="/auth/login"
